@@ -1,0 +1,85 @@
+function callTorn() {
+    
+  try{  
+    //Get API from spreadsheet
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("STOCKS");
+    var api = sheet.getRange(2,15).getValue();
+
+    // Call the torn API
+    var response = UrlFetchApp.fetch("https://api.torn.com/torn/?selections=stocks,items,bank&key="+ api );
+
+    // Parse the JSON reply
+    var json = response.getContentText();
+    var data = JSON.parse(json);
+
+    //Set API sheet as focus
+    var sheet = ss.getSheetByName("API");
+
+    //Get the values we need for stocks
+    for(var counter = 0; counter <=31; counter = counter + 1){
+      var stock = data.stocks[counter].current_price;
+
+      //Populate cells with stock data
+      sheet.getRange(2 + counter,3).setValue(stock);
+
+      //24 id stock is blank
+      if (counter == 23){
+        var counter = 24
+      }
+    }
+    //Get the values we need for bank
+    for(var counter2 = 1; counter2 <=3; counter2 = counter2 + 1){
+      var bank = data.bank[counter2 + "m"];
+
+      //Populate cells with bank data
+      sheet.getRange(2 + counter2 - 1,6).setValue(bank);
+
+      //Change bank to number from text(. to ,)
+      var noDot = sheet.getRange(2 + counter2 - 1,6).getValue().toString().replace(".",",")
+      sheet.getRange(2 + counter2 - 1,6).setValue(noDot)
+    }
+
+    //Get the values we need for items
+    for(var counter3 = 0; counter3 <=13; counter3 = counter3 + 1){
+      var itemId = sheet.getRange(2 + counter3,9).getValue()
+      var item = data.items[itemId].market_value;
+
+      //Populate cells with items data
+      sheet.getRange(2 + counter3,10).setValue(item);
+    }
+
+    // Call the torn API
+    var response = UrlFetchApp.fetch("https://api.torn.com/user/?selections=stocks&key="+ api );
+
+    // Parse the JSON reply
+    var json = response.getContentText();
+    var data = JSON.parse(json);
+
+    var counter4 = 0
+
+    //Get the values we need for stocks
+    for (var key in data.stocks){
+      var ownedStockid = data.stocks[key].stock_id;
+      var ownedStockamount = data.stocks[key].shares;
+      
+      //Populate cells with stock data
+      sheet.getRange(2 + counter4,12).setValue(ownedStockid);
+      sheet.getRange(2 + counter4,13).setValue(ownedStockamount);
+
+      var counter4 = counter4 + 1
+    }
+
+
+    //Sort data by ROI
+    var sheet = ss.getSheetByName("STOCKS");
+    var range = sheet.getRange("A3:I43")
+    range.sort({column: 8,ascending:false})
+
+
+  }
+  catch(error) {
+  throw new Error( "API CALL FAILED, CHECK YOUR API KEY FOR ERRORS" );
+  }
+}
+
