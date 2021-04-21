@@ -1,0 +1,94 @@
+function callTorn() {
+    
+  //try{  
+    //Get API from spreadsheet
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("STOCKS");
+    var api = sheet.getRange(2,15).getValue();
+
+    // Call the torn API
+    var response = UrlFetchApp.fetch("https://api.torn.com/torn/?selections=stocks,items,bank&key="+ api );
+
+    // Parse the JSON reply
+    var json = response.getContentText();
+    var data = JSON.parse(json);
+
+    //Set API sheet as focus
+    var sheet = ss.getSheetByName("API");
+
+    //Clear the previous API call data
+    sheet.getRange("A2:E50").clearContent();
+    sheet.getRange("H2:H50").clearContent();
+    sheet.getRange("L2:L50").clearContent();
+    sheet.getRange("O2:P50").clearContent();
+
+    //Get the values we need for stocks
+    var counter = 0;
+    for (var key in data.stocks){
+      var stock = data.stocks[key].acronym;
+      var id = data.stocks[key].stock_id;
+      var price = data.stocks[key].current_price;
+      var req = data.stocks[key].benefit.requirement;
+      var payout = data.stocks[key].benefit.frequency;
+
+      //Populate cells with stock data
+      sheet.getRange(2 + counter,1).setValue(stock);
+      sheet.getRange(2 + counter,2).setValue(id)
+      sheet.getRange(2 + counter,3).setValue(price);
+      sheet.getRange(2 + counter,4).setValue(req);
+      sheet.getRange(2 + counter,5).setValue(payout);
+
+      counter = counter + 1;
+    }
+    //Get the values we need for bank
+    for(var counter2 = 1; counter2 <=3; counter2 = counter2 + 1){
+      var bank = data.bank[counter2 + "m"];
+
+      //Populate cells with bank data
+      sheet.getRange(2 + counter2 - 1,8).setValue(bank);
+
+      //Change bank to number from text(. to ,)
+      var noDot = sheet.getRange(2 + counter2 - 1,8).getValue().toString().replace(".",",")
+      sheet.getRange(2 + counter2 - 1,8).setValue(noDot)
+    }
+
+    //Get the values we need for items
+    for(var counter3 = 2; counter3 <=15; counter3 = counter3 + 1){
+      var itemId = sheet.getRange(counter3,11).getValue()
+      var item = data.items[itemId].market_value;
+
+      //Populate cells with items data
+      sheet.getRange(counter3,12).setValue(item);
+    }
+
+    // Call the torn API
+    var response = UrlFetchApp.fetch("https://api.torn.com/user/?selections=stocks&key="+ api );
+
+    // Parse the JSON reply
+    var json = response.getContentText();
+    var data = JSON.parse(json);    
+
+    //Get the values we need for stocks
+    var counter4 = 0;
+    for (var key in data.stocks){
+      var ownedStockid = data.stocks[key].stock_id;
+      var ownedStockamount = data.stocks[key].total_shares;
+      
+      //Populate cells with stock data
+      sheet.getRange(2 + counter4,15).setValue(ownedStockid);
+      sheet.getRange(2 + counter4,16).setValue(ownedStockamount);
+
+      counter4 = counter4 + 1;
+    }
+
+    //Sort data by ROI
+    var sheet = ss.getSheetByName("STOCKS");
+    var range = sheet.getRange("B3:I200")
+    range.sort({column: 8,ascending:false})
+    
+  }
+  /*catch(error) {
+  throw new Error( "API CALL FAILED, CHECK YOUR API KEY FOR ERRORS" );
+  }
+}*/
+
